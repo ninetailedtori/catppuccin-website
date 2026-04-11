@@ -68,6 +68,7 @@
       border: 2px solid hsl(0 0% 50% / 0.2);
       border-radius: 50%;
       box-shadow: 0 0 0 2px var(--mantle);
+      cursor: pointer;
       position: relative;
       &:not(:last-child) {
         margin-inline-end: calc(-1 * var(--space-xs));
@@ -95,7 +96,7 @@
           left: -4rem;
         }
       }
-      &:hover, &:focus-within {
+      &:focus-within {
         .overlay {
           display: flex;
           flex-direction: column;
