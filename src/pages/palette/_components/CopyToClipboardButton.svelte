@@ -54,6 +54,12 @@
     font-family: monospace;
     white-space: pre;
 
+    width: 100%;
+
+    display: inline-flex;
+    align-items: start;
+    gap: var(--space-xs);
+
     svg path {
       fill: currentColor;
     }

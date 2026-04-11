@@ -10,15 +10,8 @@ import PageIntro from "@components/PageIntro.astro";
 import CopyToClipboardIcon from "./_components/CopyToClipboardButton.svelte";
 import FlavorName from "./_components/FlavorName.astro";
 
-const toRgb = (rgb: ColorFormat["rgb"]) => {
-  return `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
-};
-const toHsl = (hsl: ColorFormat["hsl"]) => {
-  return `hsl(${Math.round(hsl.h)}deg, ${Math.round(hsl.s * 100)}%, ${Math.round(hsl.l * 100)}%)`;
-};
-const toOklch = (oklch: ColorFormat["oklch"]) => {
-  return `oklch(${Math.round(oklch.l * 100)}%, ${Math.round(oklch.c * 100)}% ${Math.round(oklch.h)}deg)`;
-};
+import PaletteSwatches from "./_components/PaletteSwatches.svelte";
+import PaletteIngredients from "./_components/PaletteIngredients.astro";
 ---
 
 <Default
@@ -51,123 +44,72 @@ const toOklch = (oklch: ColorFormat["oklch"]) => {
         <a href=`${githubUrl}/palette`>catppuccin/palette</a>.
       </p>
     </p>
-
-    <section class="flavor-grid">
-      {
-        flavorEntries.map(([flavorName, flavor]) => (
-          <div class="flavor">
-            <details open>
-              <summary>
-                <h2 id={`flavor-${flavorName}`} class="flavor-name">
-                  <FlavorName flavor={flavorName} bold={false} />
-                </h2>
-              </summary>
-              <table class="color-list" cellspacing="0">
-                <thead>
-                  <tr class="color-list-header">
-                    <th>Color</th>
-                    <th>Hex</th>
-                    <th>RGB</th>
-                    <th>HSL</th>
-                    <th>OKLCH</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Object.values(flavor.colors).map(({ hex, rgb, hsl, oklch, name }) => (
-                    <tr class="color-list-entry" style={`--current-color: ${hex}`}>
-                      <td class="color">
-                        <h5 class="color-name">{name}</h5>
-                      </td>
-                      <td class="color-hex">
-                        <CopyToClipboardIcon client:load value={hex}>
-                          {hex}
-                        </CopyToClipboardIcon>
-                      </td>
-                      <td class="color-rgb">
-                        <CopyToClipboardIcon client:load value={toRgb(rgb)}>
-                          {toRgb(rgb)}
-                        </CopyToClipboardIcon>
-                      </td>
-                      <td class="color-hsl">
-                        <CopyToClipboardIcon client:load value={toHsl(hsl)}>
-                          {toHsl(hsl)}
-                        </CopyToClipboardIcon>
-                      </td>
-                      <td class="color-oklch">
-                        <CopyToClipboardIcon client:load value={toOklch(oklch)}>
-                          {toOklch(oklch)}
-                        </CopyToClipboardIcon>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </details>
-          </div>
-        ))
-      }
-    </section>
   </PageIntro>
 
-  <style lang="scss">
-    @use "@styles/utils";
-
-    :root {
-      --accent-color: var(--mauve);
-    }
-
-    summary {
-      cursor: pointer;
-    }
-
-    .flavor {
-      @include utils.containerPadding();
-      margin-block-start: var(--space-md);
-
-      border-radius: var(--border-radius-normal);
-      background: var(--mantle);
-
-      overflow-x: auto;
-    }
-
-    .flavor-name,
-    .color-name {
-      text-transform: capitalize;
-    }
-
-    .flavor-name {
-      font-size: inherit;
-    }
-
-    .color-list {
-      margin-block-start: var(--space-md);
-      margin-inline: auto;
-    }
-
-    .color-list-entry {
-      --__current-color: var(--current-color, var(--text));
-    }
-
-    .color-name {
-      position: relative;
-
-      margin: 0;
-      padding: 0;
-      padding-inline-start: 3rem;
-
-      &::before {
-        content: "";
-
-        position: absolute;
-        left: 0;
-
-        height: 2rem;
-        aspect-ratio: 1 / 1;
-
-        border-radius: 9999px;
-        border: 1px solid color-mix(in srgb, var(--mantle), var(--surface0) 50%);
-        background-color: var(--__current-color);
-      }
-    }
-  </style>
+  <div class="tabber tabber--init">
+    <header class="tabber__header">
+      <nav class="tabber__tabs" role="tablist">
+        <a
+          class="tabber__tab"
+          role="tab"
+          id="tabber-Swatches-label"
+          href="#tabber-Swatches"
+          aria-controls="tabber-Swatches">Swatches</a
+        >
+        <a
+          class="tabber__tab"
+          role="tab"
+          id="tabber-Ingredients-label"
+          href="#tabber-Ingredients"
+          aria-controls="tabber-Ingredients">Ingredients</a
+        >
+      </nav>
+    </header>
+    <section class="tabber__section">
+      <article
+        class="tabber__panel"
+        role="tabpanel"
+        tabindex="0"
+        id="tabber-Swatches"
+        aria-labelledby="tabber-Swatches-label">
+        <PaletteSwatches client:load />
+      </article>
+      <article
+        class="tabber__panel"
+        role="tabpanel"
+        tabindex="0"
+        id="tabber-Ingredients"
+        aria-labelledby="tabber-Ingredients-label">
+        <PaletteIngredients />
+      </article>
+    </section>
+  </div>
 </Default>
+
+<style>
+  .tabber__tabs {
+    display: flex;
+    margin-bottom: 1.5rem;
+  }
+  .tabber__tab {
+    padding: 0.5rem 1rem;
+    background-color: var(--mantle);
+    color: var(--text);
+    &:hover {
+      color: var(--blue);
+    }
+  }
+  .tabber__section {
+    display: grid;
+    overflow: hidden;
+    block-size: 100%;
+    grid-auto-columns: 100%;
+    grid-auto-flow: column;
+    scroll-snap-type: x mandatory;
+  }
+  .tabber__panel {
+    height: max-content;
+    overflow-x: auto;
+    scroll-snap-align: start;
+  }
+</style>
