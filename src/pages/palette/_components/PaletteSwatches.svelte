@@ -1,18 +1,61 @@
 <script lang="ts">
-  import { flavors } from "@catppuccin/palette";
+  import { type ColorFormat, flavors } from "@catppuccin/palette";
   import CopyToClipboardButton from "./CopyToClipboardButton.svelte";
-
   import { toHsl, toOklch, toRgb } from "../utils";
 
-  const specification = Object.entries(flavors.mocha.colors).map(([colorName, color]) => ({
+  const mochaColors = flavors.mocha.colors as Record<string, ColorFormat>;
+
+  const specification = Object.entries( mochaColors ).map( ( [ colorName, color ] ) => ( {
     id: `card-${colorName}`,
     name: color.name,
-    swatches: Object.entries(flavors).map(([swatchFlavor, swatch]) => ({
+    swatches: Object.entries( flavors ).map( ( [ swatchFlavor, swatch ] ) => ( {
       flavor: swatchFlavor,
-      color: swatch.colors[colorName],
-      id: colorName,
-    })),
-  }));
+      color: ( swatch.colors as Record<string, ColorFormat> )[colorName],
+      id: colorName
+    } ) )
+  } ) );
+
+  interface OverlayPosition {
+    top: number;
+    left: number;
+  }
+
+  let overlayPositions: Record<string, OverlayPosition> = $state( {} );
+  let hoveredSwatch = $state<string | null>( null );
+  let hideTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function clearWithDelay() {
+    if ( hideTimer ) clearTimeout( hideTimer );
+    hideTimer = setTimeout( () => {
+      hoveredSwatch = null;
+      hideTimer = null;
+    }, 50 );
+  }
+
+  function getSwatchKey( flavorName: string, colorId: string ): string {
+    return `${flavorName}-${colorId}`;
+  }
+
+  function updateOverlayPos( buttonId: string ) {
+    const button = document.getElementById( `swatch-${buttonId}` );
+    if ( !button ) return;
+
+    const rect = button.getBoundingClientRect();
+    overlayPositions[buttonId] = {
+      top: rect.bottom + 8,
+      left: rect.left + rect.width / 2
+    };
+  }
+
+  function getOverlayPos( swatchKey: string ): OverlayPosition {
+    return overlayPositions[swatchKey] || { top: 0, left: 0 };
+  }
+
+  $effect(() => {
+    if (hoveredSwatch) {
+      updateOverlayPos(hoveredSwatch);
+    }
+  });
 </script>
 
 <section>
@@ -21,24 +64,69 @@
       <div class="card-header">
         <h2>{role.name}</h2>
       </div>
-
       <div class="card-swatches">
         {#each role.swatches as swatch}
-          <div class="color-circle" tabindex="0" style="background-color: {swatch.color.hex}; anchor-name: --{swatch.flavor}-{swatch.id};" aria-describedby="swatch-overlay-{swatch.flavor}-{swatch.id}" id="swatch-{swatch.flavor}-{swatch.id}" title={swatch.flavor}>
-            <div class="overlay" style="position-anchor: --{swatch.flavor}-{swatch.id};" id="swatch-overlay-{swatch.flavor}-{swatch.id}">
-              <CopyToClipboardButton value={swatch.color.hex}>
-                hex {swatch.color.hex}
-              </CopyToClipboardButton>
-              <CopyToClipboardButton value={toRgb(swatch.color.rgb)}>
-                rgb {toRgb(swatch.color.rgb)}
-              </CopyToClipboardButton>
-              <CopyToClipboardButton value={toHsl(swatch.color.hsl)}>
-                hsl {toHsl(swatch.color.hsl)}
-              </CopyToClipboardButton>
-              <CopyToClipboardButton value={toOklch(swatch.color.oklch)}>
-                oklch {toOklch(swatch.color.oklch)}
-              </CopyToClipboardButton>
-            </div>
+          {@const swatchKey = getSwatchKey( swatch.flavor, swatch.id )}
+          {@const isHovered = hoveredSwatch === swatchKey}
+          <button
+            class="color-circle"
+            class:hovering={isHovered}
+            style="background-color: {swatch.color.hex};"
+            aria-describedby="swatch-overlay-{swatchKey}"
+            aria-label="Copy color format options for {swatch.flavor}"
+            aria-pressed={isHovered}
+            aria-expanded={isHovered}
+            id="swatch-{swatchKey}"
+            type="button"
+            onmouseenter={() => {
+              if (hideTimer) clearTimeout(hideTimer);
+              hoveredSwatch = swatchKey;
+            }}
+            onmouseleave={() => {
+              if (swatchKey === hoveredSwatch) {
+                clearWithDelay();
+              }
+            }}
+            onkeydown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                if (hoveredSwatch === swatchKey) {
+                  clearWithDelay();
+                } else {
+                  hoveredSwatch = swatchKey;
+                }
+              }
+            }}
+          ></button>
+
+          <div
+            class="overlay"
+            class:visible={isHovered}
+            id="swatch-overlay-{swatchKey}"
+            style="top: {getOverlayPos(swatchKey).top}px; left: {getOverlayPos(swatchKey).left}px;"
+            role="region"
+            aria-label="Color format options"
+            onmouseenter={() => {
+              if (hideTimer) clearTimeout(hideTimer);
+              hoveredSwatch = swatchKey;
+            }}
+            onmouseleave={() => {
+              if (swatchKey === hoveredSwatch) {
+                clearWithDelay();
+              }
+            }}
+          >
+            <CopyToClipboardButton value={swatch.color.hex}>
+              hex {swatch.color.hex}
+            </CopyToClipboardButton>
+            <CopyToClipboardButton value={toRgb(swatch.color.rgb)}>
+              rgb {toRgb( swatch.color.rgb )}
+            </CopyToClipboardButton>
+            <CopyToClipboardButton value={toHsl(swatch.color.hsl)}>
+              hsl {toHsl( swatch.color.hsl )}
+            </CopyToClipboardButton>
+            <CopyToClipboardButton value={toOklch(swatch.color.oklch)}>
+              oklch {toOklch( swatch.color.oklch )}
+            </CopyToClipboardButton>
           </div>
         {/each}
       </div>
@@ -60,50 +148,73 @@
 
     .card-swatches {
       display: flex;
+      gap: var(--space-xs);
+      flex-wrap: wrap;
     }
 
     .color-circle {
+      all: unset;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       height: 4rem;
       width: 4rem;
       border: 2px solid hsl(0 0% 50% / 0.2);
       border-radius: 50%;
-      box-shadow: 0 0 0 2px var(--mantle);
       cursor: pointer;
       position: relative;
-      &:not(:last-child) {
-        margin-inline-end: calc(-1 * var(--space-xs));
+      flex-shrink: 0;
+
+      backface-visibility: hidden;
+      -webkit-font-smoothing: antialiased;
+      will-change: transform, box-shadow;
+      contain: layout style paint;
+
+      transition: transform 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+      box-shadow 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+      &:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
       }
-      // Hover trap
-      &::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        pointer-events: all;
+
+      &:hover,
+      &[aria-pressed="true"] {
+        transform: scale(1.2) translateY(-8px);
+        box-shadow: 0 12px 20px rgba(0, 0, 0, 0.25);
       }
-      .overlay {
-        background-color: var(--surface0);
-        border: 1px solid var(--overlay0);
-        display: none;
-        top: 4rem;
-        left: 0;
-        position: absolute;
-        @supports (position-anchor: --xyz) {
-          position: fixed;
-          position-area: right bottom;
-          position-try-fallbacks: flip-inline, flip-block;
-          top: auto;
-          // I don't know how to properly do this
-          left: -4rem;
-        }
+
+      &:not(:hover):not([aria-pressed="true"]) {
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       }
-      &:focus-within {
-        .overlay {
-          display: flex;
-          flex-direction: column;
-          align-items: start;
-          z-index: 5;
-        }
-      }
+    }
+  }
+
+  .overlay {
+    background-color: var(--surface0);
+    backdrop-filter: blur(5px);
+    border: 2px solid var(--overlay0);
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    padding: var(--space-xs);
+
+    position: fixed;
+    transform: translateX(-50%);
+    pointer-events: none;
+    z-index: 1000;
+
+    opacity: 0;
+    transition: opacity 0.2s ease-out;
+
+    will-change: opacity;
+    backface-visibility: hidden;
+    -webkit-font-smoothing: antialiased;
+
+    &.visible {
+      opacity: 1;
+      pointer-events: auto;
     }
   }
 </style>

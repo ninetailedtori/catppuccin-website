@@ -1,17 +1,14 @@
 ---
-import { flavorEntries, type ColorFormat } from "@catppuccin/palette";
-
 import { githubUrl } from "@data/links";
 
 import Default from "@layouts/Default.astro";
 
 import PageIntro from "@components/PageIntro.astro";
 
-import CopyToClipboardIcon from "./_components/CopyToClipboardButton.svelte";
-import FlavorName from "./_components/FlavorName.astro";
+import FlavorName from "./_components/FlavorName.svelte";
 
 import PaletteSwatches from "./_components/PaletteSwatches.svelte";
-import PaletteIngredients from "./_components/PaletteIngredients.astro";
+import PaletteIngredients from "./_components/PaletteIngredients.svelte";
 ---
 
 <Default
@@ -21,28 +18,28 @@ import PaletteIngredients from "./_components/PaletteIngredients.astro";
     <p>
       Catppuccin consists of 4 beautiful pastel color palettes, named <strong>flavors</strong>. The theme comes in one
       light and three dark variants:
-      <ul>
-        <li>
-          <FlavorName flavor="latte" />: Our lightest theme harmoniously inverting the essence of Catppuccin's dark
-          themes.
-        </li>
-        <li>
-          <FlavorName flavor="frappe" />: A less vibrant alternative using subdued colors for a muted aesthetic.
-        </li>
-        <li>
-          <FlavorName flavor="macchiato" />: Medium contrast with gentle colors creating a soothing atmosphere.
-        </li>
-        <li>
-          <FlavorName flavor="mocha" />: The Original — Our darkest variant offering a cozy feeling with color-rich
-          accents.
-        </li>
-      </ul>
-      <p>
-        If you'd like to use them for your own project, refer to our
-        <a href=`${githubUrl}/catppuccin/blob/main/docs/style-guide.md`>style guide</a>
-        for general use cases and guidelines. Additionally, you can find integrations with popular frameworks and tools in
-        <a href=`${githubUrl}/palette`>catppuccin/palette</a>.
-      </p>
+    </p>
+    <ul>
+      <li>
+        <FlavorName flavor="latte" />: Our lightest theme harmoniously inverting the essence of Catppuccin's dark
+        themes.
+      </li>
+      <li>
+        <FlavorName flavor="frappe" />: A less vibrant alternative using subdued colors for a muted aesthetic.
+      </li>
+      <li>
+        <FlavorName flavor="macchiato" />: Medium contrast with gentle colors creating a soothing atmosphere.
+      </li>
+      <li>
+        <FlavorName flavor="mocha" />: The Original — Our darkest variant offering a cozy feeling with color-rich
+        accents.
+      </li>
+    </ul>
+    <p>
+      If you'd like to use them for your own project, refer to our
+      <a href=`${githubUrl}/catppuccin/blob/main/docs/style-guide.md`>style guide</a>
+      for general use cases and guidelines. Additionally, you can find integrations with popular frameworks and tools in
+      <a href=`${githubUrl}/palette`>catppuccin/palette</a>.
     </p>
   </PageIntro>
 
@@ -80,7 +77,7 @@ import PaletteIngredients from "./_components/PaletteIngredients.astro";
         tabindex="0"
         id="tabber-Ingredients"
         aria-labelledby="tabber-Ingredients-label">
-        <PaletteIngredients />
+        <PaletteIngredients client:load />
       </article>
     </section>
   </div>

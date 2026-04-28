@@ -11,21 +11,21 @@
   const STATE = {
     ready: "ready",
     success: "success",
-    failed: "",
+    failed: ""
   };
 
-  let stateClass = $state(STATE.ready);
+  let stateClass = $state( STATE.ready );
 
   const copyToClipboard = () => {
     try {
-      navigator.clipboard.writeText(value);
+      navigator.clipboard.writeText( value );
       stateClass = STATE.success;
     } catch (error) {
       stateClass = STATE.failed;
     }
-    setTimeout(() => {
+    setTimeout( () => {
       stateClass = STATE.ready;
-    }, 2000);
+    }, 2000 );
   };
 </script>
 
