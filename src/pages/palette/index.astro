@@ -11,6 +11,25 @@ import PaletteSwatches from "./_components/PaletteSwatches.svelte";
 import PaletteIngredients from "./_components/PaletteIngredients.svelte";
 ---
 
+<script>
+  function syncTabState() {
+    const currentHash = window.location.hash.slice(1);
+    document.querySelectorAll(".tabber__tab").forEach((btn) => {
+      const isActive = btn.getAttribute("aria-controls") === currentHash;
+      btn.setAttribute("aria-selected", isActive ? "true" : "false");
+    });
+  }
+  syncTabState();
+  window.addEventListener("hashchange", syncTabState);
+  document.querySelectorAll(".tabber__tab").forEach((button) => {
+    button.addEventListener("click", () => {
+      const tabId = button.getAttribute("aria-controls");
+      if (!tabId) return;
+      window.location.hash = tabId;
+    });
+  });
+</script>
+
 <Default
   title="Palette • Catppuccin"
   description="Dive into Catppuccin's palette: four unique pastel color palettes named 'flavors'. Ideal for your next project!">
@@ -46,20 +65,22 @@ import PaletteIngredients from "./_components/PaletteIngredients.svelte";
   <div class="tabber tabber--init">
     <header class="tabber__header">
       <nav class="tabber__tabs" role="tablist">
-        <a
+        <button
           class="tabber__tab"
           role="tab"
           id="tabber-Swatches-label"
-          href="#tabber-Swatches"
-          aria-controls="tabber-Swatches">Swatches</a
-        >
-        <a
+          aria-controls="tabber-Swatches"
+          aria-selected="true">
+          Swatches
+        </button>
+        <button
           class="tabber__tab"
           role="tab"
           id="tabber-Ingredients-label"
-          href="#tabber-Ingredients"
-          aria-controls="tabber-Ingredients">Ingredients</a
-        >
+          aria-controls="tabber-Ingredients"
+          aria-selected="false">
+          Ingredients
+        </button>
       </nav>
     </header>
     <section class="tabber__section">
@@ -84,18 +105,47 @@ import PaletteIngredients from "./_components/PaletteIngredients.svelte";
 </Default>
 
 <style>
+  .tabber__header {
+    margin-bottom: 2rem;
+  }
+
   .tabber__tabs {
     display: flex;
-    margin-bottom: 1.5rem;
-  }
-  .tabber__tab {
-    padding: 0.5rem 1rem;
+    gap: 0.5rem;
     background-color: var(--mantle);
+    padding: 0.5rem;
+    border-radius: 15px;
+    width: fit-content;
+  }
+
+  .tabber__tab {
+    padding: 0.625rem 1.5rem;
     color: var(--text);
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    border-radius: 10px;
+    transition: all 200ms ease;
+    font: inherit;
+
     &:hover {
-      color: var(--blue);
+      background-color: var(--surface0);
+      color: var(--mauve);
+    }
+
+    &:focus,
+    &:focus-visible {
+      background-color: var(--mauve);
+      color: var(--base);
+      outline: none;
+    }
+
+    &[aria-selected="true"] {
+      background-color: var(--mauve);
+      color: var(--base);
     }
   }
+
   .tabber__section {
     display: grid;
     overflow: hidden;
@@ -104,6 +154,7 @@ import PaletteIngredients from "./_components/PaletteIngredients.svelte";
     grid-auto-flow: column;
     scroll-snap-type: x mandatory;
   }
+
   .tabber__panel {
     height: max-content;
     overflow-x: auto;

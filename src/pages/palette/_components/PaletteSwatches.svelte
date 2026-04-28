@@ -51,11 +51,11 @@
     return overlayPositions[swatchKey] || { top: 0, left: 0 };
   }
 
-  $effect(() => {
-    if (hoveredSwatch) {
-      updateOverlayPos(hoveredSwatch);
+  $effect( () => {
+    if ( hoveredSwatch ) {
+      updateOverlayPos( hoveredSwatch );
     }
-  });
+  } );
 </script>
 
 <section>
@@ -135,7 +135,7 @@
 </section>
 
 <style lang="scss">
-  @use "../../../styles/utils";
+  @use "@styles/utils";
 
   section {
     @include utils.grid(250px, var(--space-sm));
@@ -159,7 +159,7 @@
       justify-content: center;
       height: 4rem;
       width: 4rem;
-      border: 2px solid hsl(0 0% 50% / 0.2);
+      border: 2px solid hsla(from var(--overlay0) h s l / 20%);
       border-radius: 50%;
       cursor: pointer;
       position: relative;

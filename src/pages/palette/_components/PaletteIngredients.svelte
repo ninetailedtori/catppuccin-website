@@ -165,7 +165,7 @@
       height: 2rem;
       aspect-ratio: 1 / 1;
       border-radius: 9999px;
-      border: 1px solid color-mix(in srgb, var(--mantle), var(--surface0) 50%);
+      border: 1px solid hsla(from var(--overlay0) h s l / 20%);
       background-color: var(--__current-color);
 
       will-change: transform, box-shadow;
