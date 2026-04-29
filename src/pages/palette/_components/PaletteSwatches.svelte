@@ -38,12 +38,27 @@
 
   function updateOverlayPos( buttonId: string ) {
     const button = document.getElementById( `swatch-${buttonId}` );
-    if ( !button ) return;
+    const overlay = document.getElementById( `swatch-overlay-${buttonId}` );
+    if ( !button || !overlay ) return;
 
     const rect = button.getBoundingClientRect();
+    const overlayRect = overlay.getBoundingClientRect();
+
+    const padding = 8;
+    let left = rect.left + rect.width / 2;
+
+    const potentialLeft = left - overlayRect.width / 2;
+    if ( potentialLeft < padding ) {
+      left = overlayRect.width / 2 + padding;
+    }
+
+    if ( potentialLeft + overlayRect.width > window.innerWidth - padding ) {
+      left = window.innerWidth - overlayRect.width / 2 - padding;
+    }
+
     overlayPositions[buttonId] = {
       top: rect.bottom + 8,
-      left: rect.left + rect.width / 2
+      left: left
     };
   }
 

@@ -13,15 +13,14 @@ import PaletteIngredients from "./_components/PaletteIngredients.svelte";
 
 <script>
   function syncTabState() {
-    const currentHash = window.location.hash.slice(1) || "tabber-Swatches";
+    const isIngredients = window.location.hash.slice(1) === "ingredients";
     document.querySelectorAll(".tabber__tab").forEach((btn) => {
-      const isActive = btn.getAttribute("aria-controls") === currentHash;
+      const tabId = btn.getAttribute("aria-controls");
+      const isActive = isIngredients ? tabId === "ingredients" : tabId === "swatches";
       btn.setAttribute("aria-selected", isActive ? "true" : "false");
     });
   }
-
   syncTabState();
-
   window.addEventListener("hashchange", syncTabState);
   document.querySelectorAll(".tabber__tab").forEach((button) => {
     button.addEventListener("click", () => {
@@ -67,39 +66,29 @@ import PaletteIngredients from "./_components/PaletteIngredients.svelte";
   <div class="tabber tabber--init">
     <header class="tabber__header">
       <nav class="tabber__tabs" role="tablist">
-        <button
-          class="tabber__tab"
-          role="tab"
-          id="tabber-Swatches-label"
-          aria-controls="tabber-Swatches"
-          aria-selected="true">
+        <button class="tabber__tab" role="tab" id="tabber-swatches-label" aria-controls="swatches" aria-selected="true">
           Swatches
         </button>
         <button
           class="tabber__tab"
           role="tab"
-          id="tabber-Ingredients-label"
-          aria-controls="tabber-Ingredients"
+          id="tabber-ingredients-label"
+          aria-controls="ingredients"
           aria-selected="false">
           Ingredients
         </button>
       </nav>
     </header>
     <section class="tabber__section">
-      <article
-        class="tabber__panel"
-        role="tabpanel"
-        tabindex="0"
-        id="tabber-Swatches"
-        aria-labelledby="tabber-Swatches-label">
+      <article class="tabber__panel" role="tabpanel" tabindex="0" id="swatches" aria-labelledby="tabber-swatches-label">
         <PaletteSwatches client:load />
       </article>
       <article
         class="tabber__panel"
         role="tabpanel"
         tabindex="0"
-        id="tabber-Ingredients"
-        aria-labelledby="tabber-Ingredients-label">
+        id="ingredients"
+        aria-labelledby="tabber-ingredients-label">
         <PaletteIngredients client:load />
       </article>
     </section>
