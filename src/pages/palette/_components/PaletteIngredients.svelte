@@ -139,7 +139,7 @@
       background-color: color-mix(in srgb, var(--surface0) 80%, transparent);
 
       .color-name::before {
-        transform: scale(1.15) translateX(5px) translateY(calc(-50% + 1px));
+        transform: scale(1.5) translateY(calc(-50% + 3px));
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
       }
     }
