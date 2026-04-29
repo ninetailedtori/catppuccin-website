@@ -20,8 +20,26 @@ import PaletteIngredients from "./_components/PaletteIngredients.svelte";
       btn.setAttribute("aria-selected", isActive ? "true" : "false");
     });
   }
+  function getActivePanel() {
+    const isIngredients = window.location.hash.slice(1) === "ingredients";
+    const panelId = isIngredients ? "ingredients" : "swatches";
+    return document.getElementById(panelId) as HTMLElement | null;
+  }
+  function updateHeight() {
+    const section = document.querySelector(".tabber__section") as HTMLElement | null;
+    const activePanel = getActivePanel();
+    if (!section || !activePanel) return;
+    const innerContent = activePanel.querySelector("section") as HTMLElement | null;
+    // FIXME: Added the 40px buffer because the resize is cut off at the bottom. Can't work out why it's cut off, so
+    // let's replace it with a smarter solution eventually.
+    const height = (innerContent?.scrollHeight || activePanel.scrollHeight) + 40;
+    section.style.height = height + "px";
+  }
   syncTabState();
-  window.addEventListener("hashchange", syncTabState);
+  window.addEventListener("hashchange", () => {
+    syncTabState();
+    updateHeight();
+  });
   document.querySelectorAll(".tabber__tab").forEach((button) => {
     button.addEventListener("click", () => {
       const tabId = button.getAttribute("aria-controls");
@@ -29,6 +47,15 @@ import PaletteIngredients from "./_components/PaletteIngredients.svelte";
       window.location.hash = tabId;
     });
   });
+  setTimeout(() => {
+    updateHeight();
+    document.querySelectorAll("details").forEach((details) => {
+      details.addEventListener("toggle", () => {
+        updateHeight();
+        setTimeout(updateHeight, 350);
+      });
+    });
+  }, 100);
 </script>
 
 <Default
@@ -140,15 +167,16 @@ import PaletteIngredients from "./_components/PaletteIngredients.svelte";
   .tabber__section {
     display: grid;
     overflow: hidden;
-    block-size: 100%;
+    height: auto;
     grid-auto-columns: 100%;
     grid-auto-flow: column;
     scroll-snap-type: x mandatory;
+    transition: height 200ms ease;
   }
 
   .tabber__panel {
-    height: max-content;
-    overflow-x: auto;
+    height: auto;
     scroll-snap-align: start;
+    transition: height 200ms ease;
   }
 </style>

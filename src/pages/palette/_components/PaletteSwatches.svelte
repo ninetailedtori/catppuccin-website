@@ -36,30 +36,39 @@
     return `${flavorName}-${colorId}`;
   }
 
+  let clickedSwatch = $state<string | null>( null );
+
+  function toggleSwatchClick( swatchKey: string ) {
+    if ( clickedSwatch === swatchKey ) {
+      clickedSwatch = null;
+    } else {
+      clickedSwatch = swatchKey;
+    }
+  }
+
+  function closeClickedSwatch() {
+    clickedSwatch = null;
+  }
+
   function updateOverlayPos( buttonId: string ) {
     const button = document.getElementById( `swatch-${buttonId}` );
     const overlay = document.getElementById( `swatch-overlay-${buttonId}` );
     if ( !button || !overlay ) return;
 
-    const rect = button.getBoundingClientRect();
-    const overlayRect = overlay.getBoundingClientRect();
+    requestAnimationFrame( () => {
+      const rect = button.getBoundingClientRect();
+      const overlayWidth = overlay.offsetWidth || 200;
+      const padding = 8;
+      let left = rect.left + rect.width / 2;
+      const minLeft = overlayWidth / 2 + padding;
+      const maxLeft = window.innerWidth - overlayWidth / 2 - padding;
+      left = Math.max( minLeft, Math.min( maxLeft, left ) );
 
-    const padding = 8;
-    let left = rect.left + rect.width / 2;
-
-    const potentialLeft = left - overlayRect.width / 2;
-    if ( potentialLeft < padding ) {
-      left = overlayRect.width / 2 + padding;
-    }
-
-    if ( potentialLeft + overlayRect.width > window.innerWidth - padding ) {
-      left = window.innerWidth - overlayRect.width / 2 - padding;
-    }
-
-    overlayPositions[buttonId] = {
-      top: rect.bottom + 8,
-      left: left
-    };
+      overlayPositions[buttonId] = {
+        top: rect.bottom + 8,
+        left: left
+      };
+    } );
   }
 
   function getOverlayPos( swatchKey: string ): OverlayPosition {
@@ -67,9 +76,27 @@
   }
 
   $effect( () => {
-    if ( hoveredSwatch ) {
-      updateOverlayPos( hoveredSwatch );
+    const activeSwatchKey = clickedSwatch || hoveredSwatch;
+    if ( activeSwatchKey ) {
+      updateOverlayPos( activeSwatchKey );
     }
+  } );
+
+  $effect( () => {
+    function handleOutsideClick( e: MouseEvent ) {
+      const target = e.target as HTMLElement;
+      if ( !target.closest( ".color-circle" ) && !target.closest( ".overlay" ) ) {
+        closeClickedSwatch();
+      }
+    }
+
+    if ( clickedSwatch ) {
+      document.addEventListener( "click", handleOutsideClick );
+    }
+
+    return () => {
+      document.removeEventListener( "click", handleOutsideClick );
+    };
   } );
 </script>
 
@@ -82,7 +109,7 @@
       <div class="card-swatches">
         {#each role.swatches as swatch}
           {@const swatchKey = getSwatchKey( swatch.flavor, swatch.id )}
-          {@const isHovered = hoveredSwatch === swatchKey}
+          {@const isHovered = hoveredSwatch === swatchKey || clickedSwatch === swatchKey}
           <button
             class="color-circle"
             class:hovering={isHovered}
@@ -93,6 +120,7 @@
             aria-expanded={isHovered}
             id="swatch-{swatchKey}"
             type="button"
+            onclick={() => toggleSwatchClick(swatchKey)}
             onmouseenter={() => {
               if (hideTimer) clearTimeout(hideTimer);
               hoveredSwatch = swatchKey;
@@ -104,11 +132,8 @@
             }}
             onkeydown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
-                if (hoveredSwatch === swatchKey) {
-                  clearWithDelay();
-                } else {
-                  hoveredSwatch = swatchKey;
-                }
+                e.preventDefault();
+                toggleSwatchClick(swatchKey);
               }
             }}
           ></button>
@@ -154,6 +179,9 @@
 
   section {
     @include utils.grid(250px, var(--space-sm));
+    height: auto;
+    min-height: auto;
+    width: 100%;
   }
 
   .card {
@@ -217,6 +245,8 @@
 
     position: fixed;
     transform: translateX(-50%);
+    max-width: calc(100vw - 16px);
+    width: fit-content;
     pointer-events: none;
     z-index: 1000;
 
