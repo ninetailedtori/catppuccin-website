@@ -197,7 +197,7 @@
     border-radius: 6px;
     display: flex;
     flex-direction: column;
-    gap: var(--space-xs);
+    gap: calc(0.25 * var(--base-unit));
     padding: var(--space-xs);
 
     position: fixed;
