@@ -5,18 +5,6 @@
   import { toHsl, toOklch, toRgb } from "../utils";
 
   let hoveredColor = $state<string | null>( null );
-
-  function getColorKey( flavorName: string, colorName: string ): string {
-    return `${flavorName}-${colorName}`;
-  }
-
-  function handleColorMouseEnter( key: string ) {
-    hoveredColor = key;
-  }
-
-  function handleColorMouseLeave() {
-    hoveredColor = null;
-  }
 </script>
 
 <section class="flavor-grid">
@@ -41,17 +29,17 @@
             </thead>
             <tbody>
             {#each Object.values( flavor.colors ) as { hex, rgb, hsl, oklch, name }}
-              {@const colorKey = getColorKey( flavorName, name )}
+              {@const colorKey = `${flavorName}-${name}`}
               {@const isHovered = hoveredColor === colorKey}
               <tr
                 class="color-list-entry"
                 class:hovering={isHovered}
-                style={`--current-color: ${hex}`}
-                onmouseenter={() => handleColorMouseEnter(colorKey)}
-                onmouseleave={handleColorMouseLeave}
+                style:--current-color={hex}
+                onmouseenter={() => (hoveredColor = colorKey)}
+                onmouseleave={() => (hoveredColor = null)}
               >
                 <td class="color">
-                  <h5 class="color-name" style={`--__current-color: ${hex}`}>
+                  <h5 class="color-name" style:--__current-color={hex}>
                     {name}
                   </h5>
                 </td>
@@ -158,13 +146,13 @@
     &::before {
       content: "";
       position: absolute;
-      left: 0;
-      top: 50%;
-      transform: translateY(-50%);
+      inset-inline-start: 0;
+      inset-block-start: 50%;
+      transform: translate3d(0, -50%, 0);
 
-      height: 2rem;
-      aspect-ratio: 1 / 1;
-      border-radius: 9999px;
+      width: 2rem;
+      aspect-ratio: 1;
+      border-radius: 50%;
       border: 1px solid hsla(from var(--overlay0) h s l / 20%);
       background-color: var(--__current-color);
 

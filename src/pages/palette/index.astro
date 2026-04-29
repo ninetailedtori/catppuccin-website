@@ -12,48 +12,51 @@ import PaletteIngredients from "./_components/PaletteIngredients.svelte";
 ---
 
 <script>
-  function syncTabState() {
-    const isIngredients = window.location.hash.slice(1) === "ingredients";
-    document.querySelectorAll(".tabber__tab").forEach((btn) => {
-      const tabId = btn.getAttribute("aria-controls");
-      const isActive = isIngredients ? tabId === "ingredients" : tabId === "swatches";
-      btn.setAttribute("aria-selected", isActive ? "true" : "false");
-    });
-    updatePillPosition();
-  }
+  const tabberSection = document.querySelector(".tabber__section") as HTMLElement | null;
+  const tabs = document.querySelectorAll(".tabber__tab");
+  const pill = document.querySelector(".tabber__pills-background") as HTMLElement | null;
+  const nav = document.querySelector(".tabber__tabs") as HTMLElement | null;
+  const panels = new Map([
+    ["swatches", document.getElementById("swatches")],
+    ["ingredients", document.getElementById("ingredients")],
+  ]) as Map<string, HTMLElement | null>;
 
   function getActivePanel() {
-    const isIngredients = window.location.hash.slice(1) === "ingredients";
-    const panelId = isIngredients ? "ingredients" : "swatches";
-    return document.getElementById(panelId) as HTMLElement | null;
+    const panelId = window.location.hash.slice(1) === "ingredients" ? "ingredients" : "swatches";
+    return panels.get(panelId);
   }
 
   function updateHeight() {
-    const section = document.querySelector(".tabber__section") as HTMLElement | null;
+    if (!tabberSection) return;
     const activePanel = getActivePanel();
-    if (!section || !activePanel) return;
+    if (!activePanel) return;
     const innerContent = activePanel.querySelector("section") as HTMLElement | null;
     // FIXME: Added the 40px buffer because the resize is cut off at the bottom. Can't work out why it's cut off, so
     // let's replace it with a smarter solution eventually.
     const height = (innerContent?.scrollHeight || activePanel.scrollHeight) + 40;
-    section.style.height = height + "px";
+    tabberSection.style.height = height + "px";
   }
 
   function updatePillPosition() {
+    if (!nav || !pill) return;
     const activeTab = document.querySelector(".tabber__tab[aria-selected='true']") as HTMLElement | null;
-    const nav = document.querySelector(".tabber__tabs") as HTMLElement | null;
-    const pill = document.querySelector(".tabber__pills-background") as HTMLElement | null;
+    if (!activeTab) return;
 
-    if (!activeTab || !nav || !pill) return;
+    const paddingLeft = parseFloat(window.getComputedStyle(nav).paddingLeft);
+    pill.style.transform = `translateX(${activeTab.offsetLeft - paddingLeft}px)`;
+    pill.style.width = `${activeTab.offsetWidth}px`;
+  }
 
-    const navStyles = window.getComputedStyle(nav);
-    const paddingLeft = parseFloat(navStyles.paddingLeft);
-
-    const offsetLeft = activeTab.offsetLeft - paddingLeft;
-    const width = activeTab.offsetWidth;
-
-    pill.style.transform = `translateX(${offsetLeft}px)`;
-    pill.style.width = `${width}px`;
+  function syncTabState() {
+    const isIngredients = window.location.hash.slice(1) === "ingredients";
+    tabs.forEach((btn) => {
+      const tabId = btn.getAttribute("aria-controls");
+      btn.setAttribute(
+        "aria-selected",
+        (isIngredients ? tabId === "ingredients" : tabId === "swatches") ? "true" : "false",
+      );
+    });
+    updatePillPosition();
   }
 
   syncTabState();
@@ -61,14 +64,20 @@ import PaletteIngredients from "./_components/PaletteIngredients.svelte";
     syncTabState();
     updateHeight();
   });
-  document.querySelectorAll(".tabber__tab").forEach((button) => {
+
+  tabs.forEach((button) => {
     button.addEventListener("click", () => {
       const tabId = button.getAttribute("aria-controls");
-      if (!tabId) return;
-      window.location.hash = tabId;
+      if (tabId) window.location.hash = tabId;
     });
   });
-  window.addEventListener("resize", updatePillPosition);
+
+  let resizeTimeout: ReturnType<typeof setTimeout>;
+  window.addEventListener("resize", () => {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(updatePillPosition, 100);
+  });
+
   setTimeout(() => {
     updateHeight();
     document.querySelectorAll("details").forEach((details) => {
@@ -114,7 +123,7 @@ import PaletteIngredients from "./_components/PaletteIngredients.svelte";
 
   <div class="tabber tabber--init">
     <header class="tabber__header">
-      <nav class="tabber__tabs" role="tablist">
+      <div class="tabber__tabs" role="tablist">
         <div class="tabber__pills-background"></div>
         <button class="tabber__tab" role="tab" id="tabber-swatches-label" aria-controls="swatches" aria-selected="true">
           Swatches
@@ -127,21 +136,16 @@ import PaletteIngredients from "./_components/PaletteIngredients.svelte";
           aria-selected="false">
           Ingredients
         </button>
-      </nav>
+      </div>
     </header>
-    <section class="tabber__section">
-      <article class="tabber__panel" role="tabpanel" tabindex="0" id="swatches" aria-labelledby="tabber-swatches-label">
+    <div class="tabber__section">
+      <div class="tabber__panel" role="tabpanel" id="swatches" aria-labelledby="tabber-swatches-label">
         <PaletteSwatches client:load />
-      </article>
-      <article
-        class="tabber__panel"
-        role="tabpanel"
-        tabindex="0"
-        id="ingredients"
-        aria-labelledby="tabber-ingredients-label">
+      </div>
+      <div class="tabber__panel" role="tabpanel" id="ingredients" aria-labelledby="tabber-ingredients-label">
         <PaletteIngredients client:load />
-      </article>
-    </section>
+      </div>
+    </div>
   </div>
 </Default>
 
@@ -207,7 +211,6 @@ import PaletteIngredients from "./_components/PaletteIngredients.svelte";
   .tabber__section {
     display: grid;
     overflow: hidden;
-    height: auto;
     grid-auto-columns: 100%;
     grid-auto-flow: column;
     scroll-snap-type: x mandatory;
@@ -215,8 +218,6 @@ import PaletteIngredients from "./_components/PaletteIngredients.svelte";
   }
 
   .tabber__panel {
-    height: auto;
     scroll-snap-align: start;
-    transition: height 200ms ease;
   }
 </style>

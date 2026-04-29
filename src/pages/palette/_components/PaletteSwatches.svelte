@@ -2,7 +2,7 @@
   import { type ColorFormat, flavors } from "@catppuccin/palette";
   import CopyToClipboardButton from "./CopyToClipboardButton.svelte";
   import { toHsl, toOklch, toRgb } from "../utils";
-  import { tick } from "svelte";
+  import { fade } from "svelte/transition";
 
   const mochaColors = flavors.mocha.colors as Record<string, ColorFormat>;
 
@@ -12,7 +12,8 @@
     swatches: Object.entries( flavors ).map( ( [ swatchFlavor, swatch ] ) => ( {
       flavor: swatchFlavor,
       color: ( swatch.colors as Record<string, ColorFormat> )[colorName],
-      id: colorName
+      id: colorName,
+      key: `${swatchFlavor}-${colorName}`
     } ) )
   } ) );
 
@@ -28,16 +29,18 @@
 
   let activeSwatch = $derived( hoveredSwatch || clickedSwatch );
 
-  function clearWithDelay() {
+  let activeColor = $derived.by( () => {
+    if ( !activeSwatch ) return null;
+    const [ flavor, colorId ] = activeSwatch.split( "-" );
+    return ( flavors[flavor as keyof typeof flavors].colors as Record<string, ColorFormat> )[colorId];
+  } );
+
+  function scheduleHoverClear( delayMs = 50 ) {
     if ( hideTimer ) clearTimeout( hideTimer );
     hideTimer = setTimeout( () => {
       hoveredSwatch = null;
       hideTimer = null;
-    }, 50 );
-  }
-
-  function getSwatchKey( flavorName: string, colorId: string ): string {
-    return `${flavorName}-${colorId}`;
+    }, delayMs );
   }
 
   function toggleSwatch( swatchKey: string ) {
@@ -50,36 +53,49 @@
 
   function closeClickedSwatch() {
     hoveredSwatch = null;
-    setTimeout( () => {
-      clickedSwatch = null;
-    }, 300 );
+    clickedSwatch = null;
   }
 
   async function updateOverlayPos( swatchKey: string ) {
     const button = document.getElementById( `swatch-${swatchKey}` );
-    const overlay = document.getElementById( `singleton-overlay` );
+    const overlay = document.getElementById( "singleton-overlay" );
+
     if ( !button || !overlay ) return;
 
-    await tick();
     await new Promise( resolve => requestAnimationFrame( resolve ) );
 
     const rect = button.getBoundingClientRect();
-    const overlayWidth = overlay.offsetWidth || 240;
+    const overlayRect = overlay.getBoundingClientRect();
+    const overlayWidth = overlayRect.width;
+    const overlayHeight = overlayRect.height;
     const padding = 8;
-    let left = rect.left + rect.width / 2;
-    const minLeft = overlayWidth / 2 + padding;
-    const maxLeft = window.innerWidth - overlayWidth / 2 - padding;
-    left = Math.max( minLeft, Math.min( maxLeft, left ) );
 
-    overlayPos = {
-      top: rect.bottom + 8,
-      left: left
-    };
+    let left = rect.left + rect.width / 2;
+    left = Math.max( overlayWidth / 2 + padding, Math.min( window.innerWidth - overlayWidth / 2 - padding, left ) );
+
+    let top = rect.bottom + 8;
+    if ( top + overlayHeight > window.innerHeight - padding ) {
+      top = rect.top - overlayHeight - 8;
+    }
+    top = Math.max( padding, top );
+
+    overlayPos = { top, left };
   }
 
   $effect( () => {
     if ( activeSwatch ) {
       updateOverlayPos( activeSwatch );
+
+      const handleScroll = () => updateOverlayPos( activeSwatch );
+      const handleResize = () => updateOverlayPos( activeSwatch );
+
+      window.addEventListener( "scroll", handleScroll, true );
+      window.addEventListener( "resize", handleResize );
+
+      return () => {
+        window.removeEventListener( "scroll", handleScroll, true );
+        window.removeEventListener( "resize", handleResize );
+      };
     }
   } );
 
@@ -100,14 +116,19 @@
     };
   } );
 
-  function getActiveColor() {
-    if ( !activeSwatch ) return null;
-    const [ flavor, colorId ] = activeSwatch.split( "-" );
-    const flavorData = flavors[flavor as keyof typeof flavors];
-    return ( flavorData.colors as Record<string, ColorFormat> )[colorId];
+  function handleOverlayMouseEnter() {
+    if ( hideTimer ) clearTimeout( hideTimer );
+    hoveredSwatch = activeSwatch;
+  }
+
+  function handleOverlayMouseLeave() {
+    if ( !clickedSwatch ) {
+      scheduleHoverClear();
+    } else if ( hoveredSwatch ) {
+      scheduleHoverClear();
+    }
   }
 </script>
-
 
 <section>
   {#each specification as role}
@@ -116,10 +137,9 @@
         <h2>{role.name}</h2>
       </div>
       <div class="card-swatches">
-        {#each role.swatches as swatch}
-          {@const swatchKey = getSwatchKey( swatch.flavor, swatch.id )}
-          {@const isActive = activeSwatch === swatchKey}
-          {@const isClicked = clickedSwatch === swatchKey}
+        {#each role.swatches as swatch (swatch.key)}
+          {@const isActive = activeSwatch === swatch.key}
+          {@const isClicked = clickedSwatch === swatch.key}
           <button
             class="color-circle"
             class:hovering={isActive}
@@ -127,22 +147,31 @@
             aria-label="Copy color format options for {swatch.flavor}"
             aria-pressed={isClicked}
             aria-expanded={isActive}
-            id="swatch-{swatchKey}"
+            id="swatch-{swatch.key}"
             type="button"
-            onclick={() => toggleSwatch(swatchKey)}
-            onmouseenter={() => {
+            onclick={() => toggleSwatch(swatch.key)}
+            onmouseover={() => {
               if (hideTimer) clearTimeout(hideTimer);
-              hoveredSwatch = swatchKey;
+              hoveredSwatch = swatch.key;
             }}
-            onmouseleave={() => {
-              if (swatchKey === hoveredSwatch) {
-                clearWithDelay();
+            onmouseout={() => {
+              if (swatch.key === hoveredSwatch) {
+                scheduleHoverClear();
+              }
+            }}
+            onfocus={() => {
+              if (hideTimer) clearTimeout(hideTimer);
+              hoveredSwatch = swatch.key;
+            }}
+            onblur={() => {
+              if (swatch.key === hoveredSwatch) {
+                scheduleHoverClear();
               }
             }}
             onkeydown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
-                toggleSwatch(swatchKey);
+                toggleSwatch(swatch.key);
               }
             }}
           ></button>
@@ -152,44 +181,36 @@
   {/each}
 </section>
 
-<div
-  class="overlay"
-  class:visible={!!activeSwatch}
-  id="singleton-overlay"
-  style="top: {overlayPos.top}px; left: {overlayPos.left}px;"
-  role="region"
-  aria-label="Color format options"
-  aria-hidden={!activeSwatch}
-  onmouseenter={() => {
-    if (hideTimer) clearTimeout(hideTimer);
-    hoveredSwatch = activeSwatch;
-  }}
-  onmouseleave={() => {
-    if (!clickedSwatch) {
-      clearWithDelay();
-    } else if (hoveredSwatch) {
-      clearWithDelay();
-    }
-  }}
->
-  {#if activeSwatch}
-    {@const color = getActiveColor()}
-    {#if color}
-      <CopyToClipboardButton value={color.hex}>
-        hex {color.hex}
-      </CopyToClipboardButton>
-      <CopyToClipboardButton value={toRgb(color.rgb)}>
-        rgb {toRgb( color.rgb )}
-      </CopyToClipboardButton>
-      <CopyToClipboardButton value={toHsl(color.hsl)}>
-        hsl {toHsl( color.hsl )}
-      </CopyToClipboardButton>
-      <CopyToClipboardButton value={toOklch(color.oklch)}>
-        oklch {toOklch( color.oklch )}
-      </CopyToClipboardButton>
-    {/if}
-  {/if}
-</div>
+{#if activeSwatch && activeColor}
+  {@const flavorName = activeSwatch.split( "-" )[0]}
+  <div
+    class="overlay"
+    id="singleton-overlay"
+    style="top: {overlayPos.top}px; left: {overlayPos.left}px;"
+    role="region"
+    aria-label="Color format options"
+    aria-hidden={!activeSwatch}
+    transition:fade={{ duration: 300 }}
+    onmouseenter={handleOverlayMouseEnter}
+    onmouseleave={handleOverlayMouseLeave}
+  >
+    <div class="overlay-header">
+      <span class="flavor-label">{flavorName}</span>
+    </div>
+    <CopyToClipboardButton value={activeColor.hex}>
+      hex {activeColor.hex}
+    </CopyToClipboardButton>
+    <CopyToClipboardButton value={toRgb(activeColor.rgb)}>
+      rgb {toRgb( activeColor.rgb )}
+    </CopyToClipboardButton>
+    <CopyToClipboardButton value={toHsl(activeColor.hsl)}>
+      hsl {toHsl( activeColor.hsl )}
+    </CopyToClipboardButton>
+    <CopyToClipboardButton value={toOklch(activeColor.oklch)}>
+      oklch {toOklch( activeColor.oklch )}
+    </CopyToClipboardButton>
+  </div>
+{/if}
 
 <style lang="scss">
   @use "@styles/utils";
@@ -250,37 +271,36 @@
     }
   }
 
+  .overlay-header {
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: capitalize;
+    color: var(--subtext0);
+    letter-spacing: 0.05em;
+    padding-bottom: calc(0.25 * var(--base-unit));
+    border-bottom: 1px solid var(--overlay0);
+    margin-bottom: calc(0.25 * var(--base-unit));
+  }
+
   .overlay {
     position: fixed;
-    pointer-events: none;
+    pointer-events: auto;
     z-index: 1000;
 
-    opacity: 0;
-    visibility: hidden;
-    transform: translate3d(-50%, 0, 0) scale(0.9);
-    transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    background-color: var(--surface0);
+    border-radius: 6px;
+    border: 2px solid var(--overlay0);
+    display: flex;
+    flex-direction: column;
+    gap: calc(0.25 * var(--base-unit));
+    padding: var(--space-xs);
+    max-width: calc(100vw - 16px);
+    width: fit-content;
+
+    transform: translate3d(-50%, 0, 0);
 
     will-change: transform, opacity;
     backface-visibility: hidden;
     -webkit-font-smoothing: antialiased;
-
-    &.visible {
-      opacity: 1;
-      visibility: visible;
-      pointer-events: auto;
-
-      background-color: var(--surface0);
-      border-radius: 6px;
-      border: 2px solid var(--overlay0);
-      display: flex;
-      flex-direction: column;
-      gap: calc(0.25 * var(--base-unit));
-      padding: var(--space-xs);
-
-      transform: translate3d(-50%, 0, 0) scale(1);
-      max-width: calc(100vw - 16px);
-      width: fit-content;
-    }
   }
 </style>
