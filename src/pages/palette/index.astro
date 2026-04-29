@@ -13,13 +13,15 @@ import PaletteIngredients from "./_components/PaletteIngredients.svelte";
 
 <script>
   function syncTabState() {
-    const currentHash = window.location.hash.slice(1);
+    const currentHash = window.location.hash.slice(1) || "tabber-Swatches";
     document.querySelectorAll(".tabber__tab").forEach((btn) => {
       const isActive = btn.getAttribute("aria-controls") === currentHash;
       btn.setAttribute("aria-selected", isActive ? "true" : "false");
     });
   }
+
   syncTabState();
+
   window.addEventListener("hashchange", syncTabState);
   document.querySelectorAll(".tabber__tab").forEach((button) => {
     button.addEventListener("click", () => {
