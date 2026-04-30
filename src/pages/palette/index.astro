@@ -2,92 +2,16 @@
 import { githubUrl } from "@data/links";
 
 import Default from "@layouts/Default.astro";
-
 import PageIntro from "@components/PageIntro.astro";
 
 import FlavorName from "./_components/FlavorName.svelte";
+import PaletteTabber from "./_components/PaletteTabber.svelte";
 
-import PaletteSwatches from "./_components/PaletteSwatches.svelte";
-import PaletteIngredients from "./_components/PaletteIngredients.svelte";
+const tabs = [
+  { id: "swatches", label: "Swatches" },
+  { id: "ingredients", label: "Ingredients" },
+];
 ---
-
-<script>
-  const tabberSection = document.querySelector(".tabber__section") as HTMLElement | null;
-  const tabs = document.querySelectorAll(".tabber__tab");
-  const pill = document.querySelector(".tabber__pills-background") as HTMLElement | null;
-  const nav = document.querySelector(".tabber__tabs") as HTMLElement | null;
-  const panels = new Map([
-    ["swatches", document.getElementById("swatches")],
-    ["ingredients", document.getElementById("ingredients")],
-  ]) as Map<string, HTMLElement | null>;
-
-  function getActivePanel() {
-    const panelId = window.location.hash.slice(1) === "ingredients" ? "ingredients" : "swatches";
-    return panels.get(panelId);
-  }
-
-  function updateHeight() {
-    if (!tabberSection) return;
-    const activePanel = getActivePanel();
-    if (!activePanel) return;
-    const innerContent = activePanel.querySelector("section") as HTMLElement | null;
-    // FIXME: Added the 40px buffer because the resize is cut off at the bottom. Can't work out why it's cut off, so
-    // let's replace it with a smarter solution eventually.
-    const height = (innerContent?.scrollHeight || activePanel.scrollHeight) + 40;
-    tabberSection.style.height = height + "px";
-  }
-
-  function updatePillPosition() {
-    if (!nav || !pill) return;
-    const activeTab = document.querySelector(".tabber__tab[aria-selected='true']") as HTMLElement | null;
-    if (!activeTab) return;
-
-    const paddingLeft = parseFloat(window.getComputedStyle(nav).paddingLeft);
-    pill.style.transform = `translateX(${activeTab.offsetLeft - paddingLeft}px)`;
-    pill.style.width = `${activeTab.offsetWidth}px`;
-  }
-
-  function syncTabState() {
-    const isIngredients = window.location.hash.slice(1) === "ingredients";
-    tabs.forEach((btn) => {
-      const tabId = btn.getAttribute("aria-controls");
-      btn.setAttribute(
-        "aria-selected",
-        (isIngredients ? tabId === "ingredients" : tabId === "swatches") ? "true" : "false",
-      );
-    });
-    updatePillPosition();
-  }
-
-  syncTabState();
-  window.addEventListener("hashchange", () => {
-    syncTabState();
-    updateHeight();
-  });
-
-  tabs.forEach((button) => {
-    button.addEventListener("click", () => {
-      const tabId = button.getAttribute("aria-controls");
-      if (tabId) window.location.hash = tabId;
-    });
-  });
-
-  let resizeTimeout: ReturnType<typeof setTimeout>;
-  window.addEventListener("resize", () => {
-    clearTimeout(resizeTimeout);
-    resizeTimeout = setTimeout(updatePillPosition, 100);
-  });
-
-  setTimeout(() => {
-    updateHeight();
-    document.querySelectorAll("details").forEach((details) => {
-      details.addEventListener("toggle", () => {
-        updateHeight();
-        setTimeout(updateHeight, 350);
-      });
-    });
-  }, 100);
-</script>
 
 <Default
   title="Palette • Catppuccin"
@@ -121,103 +45,11 @@ import PaletteIngredients from "./_components/PaletteIngredients.svelte";
     </p>
   </PageIntro>
 
-  <div class="tabber tabber--init">
-    <header class="tabber__header">
-      <div class="tabber__tabs" role="tablist">
-        <div class="tabber__pills-background"></div>
-        <button class="tabber__tab" role="tab" id="tabber-swatches-label" aria-controls="swatches" aria-selected="true">
-          Swatches
-        </button>
-        <button
-          class="tabber__tab"
-          role="tab"
-          id="tabber-ingredients-label"
-          aria-controls="ingredients"
-          aria-selected="false">
-          Ingredients
-        </button>
-      </div>
-    </header>
-    <div class="tabber__section">
-      <div class="tabber__panel" role="tabpanel" id="swatches" aria-labelledby="tabber-swatches-label">
-        <PaletteSwatches client:load />
-      </div>
-      <div class="tabber__panel" role="tabpanel" id="ingredients" aria-labelledby="tabber-ingredients-label">
-        <PaletteIngredients client:load />
-      </div>
-    </div>
-  </div>
+  <PaletteTabber {tabs} client:load defaultTab="swatches" />
 </Default>
 
 <style>
-  .tabber__header {
+  :global(.tabber__header) {
     margin-bottom: 2rem;
-  }
-
-  .tabber__tabs {
-    display: flex;
-    gap: 0.5rem;
-    background-color: var(--mantle);
-    padding: 0.5rem;
-    border-radius: 10px;
-    width: fit-content;
-    position: relative;
-  }
-  .tabber__pills-background {
-    position: absolute;
-    top: 0.5rem;
-    left: 0.5rem;
-    height: calc(100% - 1rem);
-    background-color: var(--mauve);
-    border-radius: 5px;
-    transition: all 200ms ease;
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  .tabber__tab {
-    position: relative;
-    z-index: 1;
-    padding: 0.625rem 1.5rem;
-    color: var(--text);
-    background-color: transparent;
-    border: none;
-    cursor: pointer;
-    border-radius: 5px;
-    transition: color 200ms ease;
-    font: inherit;
-
-    &:hover {
-      background-color: var(--surface0);
-      color: var(--mauve);
-    }
-
-    &[aria-selected="true"] {
-      color: var(--base) !important;
-
-      &:hover {
-        background-color: rgba(0, 0, 0, 0.15);
-      }
-    }
-
-    &:focus,
-    &:focus-visible {
-      background-color: var(--mauve);
-      color: var(--base);
-      outline: none;
-    }
-  }
-
-  .tabber__section {
-    display: grid;
-    overflow: hidden;
-    grid-auto-columns: 100%;
-    grid-auto-flow: column;
-    scroll-snap-type: x mandatory;
-    transition: height 200ms ease;
-  }
-
-  .tabber__panel {
-    scroll-snap-align: start;
   }
 </style>

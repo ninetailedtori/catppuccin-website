@@ -247,6 +247,7 @@
     .card-header {
       h2 {
         margin-block: 0 var(--space-xs);
+        user-select: none;
       }
     }
 
@@ -265,8 +266,6 @@
       cursor: pointer;
       position: relative;
       flex-shrink: 0;
-
-      /* Selective button resets */
       background-color: transparent;
       padding: 0;
       margin: 0;
@@ -277,8 +276,6 @@
 
       transition: transform 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94),
       box-shadow 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-
-      /* Base box-shadow state */
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 
       &:focus-visible {
