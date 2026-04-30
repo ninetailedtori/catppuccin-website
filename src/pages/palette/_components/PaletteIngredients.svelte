@@ -78,6 +78,14 @@
 
   :root {
     --accent-color: var(--mauve);
+    --transition-duration: 0.2s;
+    --transition-easing: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :root {
+      --transition-duration: 0s;
+    }
   }
 
   summary {
@@ -113,10 +121,7 @@
 
   .color-list-entry {
     --__current-color: var(--current-color, var(--text));
-
-    transition: background-color 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    backface-visibility: hidden;
-    -webkit-font-smoothing: antialiased;
+    transition: background-color var(--transition-duration) var(--transition-easing);
 
     &:focus-within {
       background-color: color-mix(in srgb, var(--surface0) 50%, transparent);
@@ -156,8 +161,9 @@
       background-color: var(--__current-color);
 
       will-change: transform, box-shadow;
-      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
-      box-shadow 0.2s ease-out;
+      transition: transform var(--transition-duration) cubic-bezier(0.34, 1.56, 0.64, 1),
+      box-shadow var(--transition-duration) ease-out;
     }
   }
+
 </style>

@@ -26,6 +26,7 @@
   let clickedSwatch = $state<string | null>( null );
   let hoveredSwatch = $state<string | null>( null );
   let hideTimer: ReturnType<typeof setTimeout> | null = null;
+  let prefersReducedMotion = $state( false );
 
   let activeSwatch = $derived( hoveredSwatch || clickedSwatch );
 
@@ -33,6 +34,19 @@
     if ( !activeSwatch ) return null;
     const [ flavor, colorId ] = activeSwatch.split( "-" );
     return ( flavors[flavor as keyof typeof flavors].colors as Record<string, ColorFormat> )[colorId];
+  } );
+
+  $effect.root( () => {
+    const mediaQuery = window.matchMedia( "(prefers-reduced-motion: reduce)" );
+
+    prefersReducedMotion = mediaQuery.matches;
+
+    const handleChange = ( e: MediaQueryListEvent ) => {
+      prefersReducedMotion = e.matches;
+    };
+
+    mediaQuery.addEventListener( "change", handleChange );
+    return () => mediaQuery.removeEventListener( "change", handleChange );
   } );
 
   function scheduleHoverClear( delayMs = 50 ) {
@@ -68,14 +82,14 @@
     const overlayRect = overlay.getBoundingClientRect();
     const overlayWidth = overlayRect.width;
     const overlayHeight = overlayRect.height;
-    const padding = 8;
+    const padding = parseInt( getComputedStyle( document.documentElement ).getPropertyValue( "--space-sm" ) );
 
     let left = rect.left + rect.width / 2;
     left = Math.max( overlayWidth / 2 + padding, Math.min( window.innerWidth - overlayWidth / 2 - padding, left ) );
 
-    let top = rect.bottom + 8;
+    let top = rect.bottom + parseInt( getComputedStyle( document.documentElement ).getPropertyValue( "--space-xs" ) );
     if ( top + overlayHeight > window.innerHeight - padding ) {
-      top = rect.top - overlayHeight - 8;
+      top = rect.top - overlayHeight - parseInt( getComputedStyle( document.documentElement ).getPropertyValue( "--space-xs" ) );
     }
     top = Math.max( padding, top );
 
@@ -190,7 +204,7 @@
     role="region"
     aria-label="Color format options"
     inert={!activeSwatch}
-    transition:fade={{ duration: 300 }}
+    transition:fade={{ duration: prefersReducedMotion ? 0 : 300 }}
     onpointerenter={handleOverlayMouseEnter}
     onpointerleave={handleOverlayMouseLeave}
   >
@@ -215,41 +229,57 @@
 <style lang="scss">
   @use "@styles/utils";
 
+  :root {
+    --color-circle-size: 4rem;
+    --overlay-padding: var(--space-xs);
+    --overlay-max-width: calc(100vw - var(--space-lg));
+  }
+
   section {
     @include utils.grid(250px, var(--space-sm));
-    height: auto;
-    min-height: auto;
-    width: 100%;
   }
 
   .card {
     border-radius: var(--border-radius-normal);
     background-color: var(--mantle);
-    padding: var(--space-sm);
+    @include utils.containerPadding(sm);
+
+    .card-header {
+      h2 {
+        margin-block: 0 var(--space-xs);
+      }
+    }
 
     .card-swatches {
-      display: flex;
-      gap: var(--space-xs);
-      flex-wrap: wrap;
+      @include utils.flex(row, var(--space-xs));
     }
 
     .color-circle {
-      all: unset;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      height: 4rem;
-      width: 4rem;
+      height: var(--color-circle-size);
+      width: var(--color-circle-size);
       border: 2px solid hsla(from var(--overlay0) h s l / 20%);
       border-radius: 50%;
       cursor: pointer;
       position: relative;
       flex-shrink: 0;
 
+      /* Selective button resets */
+      background-color: transparent;
+      padding: 0;
+      margin: 0;
+      font: inherit;
+      color: inherit;
+
       contain: layout style paint;
 
       transition: transform 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94),
       box-shadow 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+      /* Base box-shadow state */
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 
       &:focus-visible {
         outline: 2px solid var(--accent);
@@ -261,22 +291,18 @@
         transform: scale(1.2) translateY(-8px);
         box-shadow: 0 12px 20px rgba(0, 0, 0, 0.25);
       }
-
-      &:not(:hover):not([aria-pressed="true"]) {
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      }
     }
   }
 
   .overlay-header {
-    font-size: 14px;
+    font-size: 0.875rem;
     font-weight: 600;
     text-transform: capitalize;
     color: var(--subtext0);
     letter-spacing: 0.05em;
-    padding-bottom: calc(0.25 * var(--base-unit));
+    padding-bottom: var(--space-xxs);
     border-bottom: 1px solid var(--overlay0);
-    margin-bottom: calc(0.25 * var(--base-unit));
+    margin-bottom: var(--space-xxs);
   }
 
   .overlay {
@@ -289,8 +315,8 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-xs);
-    padding: var(--space-xs);
-    max-width: calc(100vw - 16px);
+    padding: var(--overlay-padding);
+    max-width: var(--overlay-max-width);
     width: fit-content;
 
     transform: translate(-50%, 0);
