@@ -35,8 +35,8 @@
                 class="color-list-entry"
                 class:hovering={isHovered}
                 style:--current-color={hex}
-                onmouseenter={() => (hoveredColor = colorKey)}
-                onmouseleave={() => (hoveredColor = null)}
+                onpointerenter={() => (hoveredColor = colorKey)}
+                onpointerleave={() => (hoveredColor = null)}
               >
                 <td class="color">
                   <h5 class="color-name" style:--__current-color={hex}>
@@ -94,7 +94,6 @@
 
   .table-wrapper {
     overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
   }
 
   .flavor-name,
@@ -159,7 +158,6 @@
       will-change: transform, box-shadow;
       transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
       box-shadow 0.2s ease-out;
-      backface-visibility: hidden;
     }
   }
 </style>

@@ -150,11 +150,11 @@
             id="swatch-{swatch.key}"
             type="button"
             onclick={() => toggleSwatch(swatch.key)}
-            onmouseover={() => {
+            onpointerover={() => {
               if (hideTimer) clearTimeout(hideTimer);
               hoveredSwatch = swatch.key;
             }}
-            onmouseout={() => {
+            onpointerout={() => {
               if (swatch.key === hoveredSwatch) {
                 scheduleHoverClear();
               }
@@ -189,10 +189,10 @@
     style="top: {overlayPos.top}px; left: {overlayPos.left}px;"
     role="region"
     aria-label="Color format options"
-    aria-hidden={!activeSwatch}
+    inert={!activeSwatch}
     transition:fade={{ duration: 300 }}
-    onmouseenter={handleOverlayMouseEnter}
-    onmouseleave={handleOverlayMouseLeave}
+    onpointerenter={handleOverlayMouseEnter}
+    onpointerleave={handleOverlayMouseLeave}
   >
     <div class="overlay-header">
       <span class="flavor-label">{flavorName}</span>
@@ -246,9 +246,6 @@
       position: relative;
       flex-shrink: 0;
 
-      backface-visibility: hidden;
-      -webkit-font-smoothing: antialiased;
-      will-change: transform, box-shadow;
       contain: layout style paint;
 
       transition: transform 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94),
@@ -284,23 +281,18 @@
 
   .overlay {
     position: fixed;
-    pointer-events: auto;
     z-index: 1000;
 
     background-color: var(--surface0);
-    border-radius: 6px;
+    border-radius: var(--border-radius-large);
     border: 2px solid var(--overlay0);
     display: flex;
     flex-direction: column;
-    gap: calc(0.25 * var(--base-unit));
+    gap: var(--space-xs);
     padding: var(--space-xs);
     max-width: calc(100vw - 16px);
     width: fit-content;
 
-    transform: translate3d(-50%, 0, 0);
-
-    will-change: transform, opacity;
-    backface-visibility: hidden;
-    -webkit-font-smoothing: antialiased;
+    transform: translate(-50%, 0);
   }
 </style>

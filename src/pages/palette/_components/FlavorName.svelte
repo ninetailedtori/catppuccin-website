@@ -29,10 +29,6 @@
   span {
     display: inline-flex;
     align-items: center;
-    gap: 0.25rem;
-  }
-
-  strong {
-    font-weight: 600;
+    gap: var(--space-xs)
   }
 </style>
