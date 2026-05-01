@@ -23,6 +23,14 @@ export default defineConfig({
   site: "https://catppuccin.com",
   vite: {
     plugins: [yaml()],
+    resolve: {
+      alias: {
+        "@components": new URL("./src/components", import.meta.url).pathname,
+        "@layouts": new URL("./src/layouts", import.meta.url).pathname,
+        "@data": new URL("./src/data", import.meta.url).pathname,
+        "@styles": new URL("./src/styles", import.meta.url).pathname
+      },
+    },
   },
   markdown: {
     rehypePlugins: [
