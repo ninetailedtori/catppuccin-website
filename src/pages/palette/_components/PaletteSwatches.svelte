@@ -73,23 +73,31 @@
   async function updateOverlayPos( swatchKey: string ) {
     const button = document.getElementById( `swatch-${swatchKey}` );
     const overlay = document.getElementById( "singleton-overlay" );
+    const sectionElement = button?.closest( "section" ) as HTMLElement | null;
 
-    if ( !button || !overlay ) return;
+    if ( !button || !overlay || !sectionElement ) return;
 
     await new Promise( resolve => requestAnimationFrame( resolve ) );
 
     const rect = button.getBoundingClientRect();
+    const sectionRect = sectionElement.getBoundingClientRect();
     const overlayRect = overlay.getBoundingClientRect();
-    const overlayWidth = overlayRect.width;
-    const overlayHeight = overlayRect.height;
-    const padding = parseInt( getComputedStyle( document.documentElement ).getPropertyValue( "--space-sm" ) );
+    const overlayWidth = overlayRect.width || 220;
+    const overlayHeight = overlayRect.height || 200;
+    const padding = 12; // --space-sm in pixels
 
-    let left = rect.left + rect.width / 2;
-    left = Math.max( overlayWidth / 2 + padding, Math.min( window.innerWidth - overlayWidth / 2 - padding, left ) );
+    const buttonRelativeLeft = rect.left - sectionRect.left;
+    const buttonRelativeTop = rect.top - sectionRect.top;
 
-    let top = rect.bottom + parseInt( getComputedStyle( document.documentElement ).getPropertyValue( "--space-xs" ) );
-    if ( top + overlayHeight > window.innerHeight - padding ) {
-      top = rect.top - overlayHeight - parseInt( getComputedStyle( document.documentElement ).getPropertyValue( "--space-xs" ) );
+    let left = buttonRelativeLeft + rect.width / 2;
+    left = Math.max(
+      overlayWidth / 2 + padding,
+      Math.min( sectionRect.width - overlayWidth / 2 - padding, left )
+    );
+
+    let top = buttonRelativeTop + rect.height + 8;
+    if ( top + overlayHeight > sectionRect.height - padding ) {
+      top = buttonRelativeTop - overlayHeight - 8;
     }
     top = Math.max( padding, top );
 
@@ -144,9 +152,15 @@
   }
 </script>
 
-<section>
+<section style="position: relative;">
   {#each specification as role}
-    <div class="card" id={role.id}>
+    <div
+      class="card"
+      id={role.id}
+      ondragstart={(e) => {
+        e.preventDefault();
+      }}
+    >
       <div class="card-header">
         <h2>{role.name}</h2>
       </div>
@@ -193,38 +207,37 @@
       </div>
     </div>
   {/each}
-</section>
-
-{#if activeSwatch && activeColor}
-  {@const flavorName = activeSwatch.split( "-" )[0]}
-  <div
-    class="overlay"
-    id="singleton-overlay"
-    style="top: {overlayPos.top}px; left: {overlayPos.left}px;"
-    role="region"
-    aria-label="Color format options"
-    inert={!activeSwatch}
-    transition:fade={{ duration: prefersReducedMotion ? 0 : 300 }}
-    onpointerenter={handleOverlayMouseEnter}
-    onpointerleave={handleOverlayMouseLeave}
-  >
-    <div class="overlay-header">
-      <span class="flavor-label">{flavorName}</span>
+  {#if activeSwatch && activeColor}
+    {@const flavorName = activeSwatch.split( "-" )[0]}
+    <div
+      class="overlay"
+      id="singleton-overlay"
+      style="top: {overlayPos.top}px; left: {overlayPos.left}px;"
+      role="region"
+      aria-label="Color format options"
+      inert={!activeSwatch}
+      transition:fade={{ duration: prefersReducedMotion ? 0 : 300 }}
+      onpointerenter={handleOverlayMouseEnter}
+      onpointerleave={handleOverlayMouseLeave}
+    >
+      <div class="overlay-header">
+        <span class="flavor-label">{flavorName}</span>
+      </div>
+      <CopyToClipboardButton value={activeColor.hex}>
+        hex {activeColor.hex}
+      </CopyToClipboardButton>
+      <CopyToClipboardButton value={toRgb(activeColor.rgb)}>
+        rgb {toRgb( activeColor.rgb )}
+      </CopyToClipboardButton>
+      <CopyToClipboardButton value={toHsl(activeColor.hsl)}>
+        hsl {toHsl( activeColor.hsl )}
+      </CopyToClipboardButton>
+      <CopyToClipboardButton value={toOklch(activeColor.oklch)}>
+        oklch {toOklch( activeColor.oklch )}
+      </CopyToClipboardButton>
     </div>
-    <CopyToClipboardButton value={activeColor.hex}>
-      hex {activeColor.hex}
-    </CopyToClipboardButton>
-    <CopyToClipboardButton value={toRgb(activeColor.rgb)}>
-      rgb {toRgb( activeColor.rgb )}
-    </CopyToClipboardButton>
-    <CopyToClipboardButton value={toHsl(activeColor.hsl)}>
-      hsl {toHsl( activeColor.hsl )}
-    </CopyToClipboardButton>
-    <CopyToClipboardButton value={toOklch(activeColor.oklch)}>
-      oklch {toOklch( activeColor.oklch )}
-    </CopyToClipboardButton>
-  </div>
-{/if}
+  {/if}
+</section>
 
 <style lang="scss">
   @use "@styles/utils";
@@ -232,7 +245,8 @@
   :root {
     --color-circle-size: 4rem;
     --overlay-padding: var(--space-xs);
-    --overlay-max-width: calc(100vw - var(--space-lg));
+    --overlay-width: 30em;
+    --overlay-height: 30em;
   }
 
   section {
@@ -243,6 +257,10 @@
     border-radius: var(--border-radius-normal);
     background-color: var(--mantle);
     @include utils.containerPadding(sm);
+
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-user-drag: none;
 
     .card-header {
       h2 {
@@ -278,6 +296,10 @@
       box-shadow 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94);
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 
+      @media (prefers-reduced-motion: reduce) {
+        transition: none;
+      }
+
       &:focus-visible {
         outline: 2px solid var(--accent);
         outline-offset: 2px;
@@ -311,10 +333,12 @@
     border: 2px solid var(--overlay0);
     display: flex;
     flex-direction: column;
-    gap: var(--space-xs);
+    gap: var(--overlay-padding);
     padding: var(--overlay-padding);
-    max-width: var(--overlay-max-width);
+    max-width: var(--overlay-width);
+    max-height: var(--overlay-height);
     width: fit-content;
+    height: fit-content;
 
     transform: translate(-50%, 0);
   }
